@@ -1,6 +1,6 @@
 #![allow(clippy::items_after_test_module)]
 
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 use std::time::Duration;
 
 use anyhow::{anyhow, Result};
@@ -19,7 +19,7 @@ lazy_static! {
 
 /// Spawn the server, giving some time for the control port TcpListener to start.
 async fn spawn_server(secret: Option<&str>) {
-    tokio::spawn(Server::new(1024..=65535, secret).listen());
+    tokio::spawn(Server::new(1024..=65535, IpAddr::from([0, 0, 0, 0]), secret).listen());
     time::sleep(Duration::from_millis(50)).await;
 }
 
@@ -125,5 +125,5 @@ async fn very_long_frame() -> Result<()> {
 fn empty_port_range() {
     let min_port = 5000;
     let max_port = 3000;
-    let _ = Server::new(min_port..=max_port, None);
+    let _ = Server::new(min_port..=max_port, IpAddr::from([0, 0, 0, 0]), None);
 }

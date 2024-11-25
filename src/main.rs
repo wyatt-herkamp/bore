@@ -1,3 +1,5 @@
+use std::net::IpAddr;
+
 use anyhow::Result;
 use bore_cli::{client::Client, server::Server};
 use clap::{error::ErrorKind, CommandFactory, Parser, Subcommand};
@@ -43,7 +45,9 @@ enum Command {
         /// Maximum accepted TCP port number.
         #[clap(long, default_value_t = 65535, env = "BORE_MAX_PORT")]
         max_port: u16,
-
+        /// The address to bind the server to.
+        #[clap(long, default_value = "0.0.0.0", env = "BORE_BIND_ADDRESS")]
+        bind_address: IpAddr,
         /// Optional secret for authentication.
         #[clap(short, long, env = "BORE_SECRET", hide_env_values = true)]
         secret: Option<String>,
@@ -67,6 +71,7 @@ async fn run(command: Command) -> Result<()> {
             min_port,
             max_port,
             secret,
+            bind_address,
         } => {
             let port_range = min_port..=max_port;
             if port_range.is_empty() {
@@ -74,7 +79,9 @@ async fn run(command: Command) -> Result<()> {
                     .error(ErrorKind::InvalidValue, "port range is empty")
                     .exit();
             }
-            Server::new(port_range, secret.as_deref()).listen().await?;
+            Server::new(port_range, bind_address, secret.as_deref())
+                .listen()
+                .await?;
         }
     }
 

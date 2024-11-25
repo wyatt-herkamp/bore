@@ -1,5 +1,6 @@
 //! Server implementation for the `bore` service.
 
+use std::net::IpAddr;
 use std::{io, net::SocketAddr, ops::RangeInclusive, sync::Arc, time::Duration};
 
 use anyhow::Result;
@@ -20,26 +21,32 @@ pub struct Server {
 
     /// Optional secret used to authenticate clients.
     auth: Option<Authenticator>,
-
+    /// Address to bind the server to.
+    bind_address: IpAddr,
     /// Concurrent map of IDs to incoming connections.
     conns: Arc<DashMap<Uuid, TcpStream>>,
 }
 
 impl Server {
     /// Create a new server with a specified minimum port number.
-    pub fn new(port_range: RangeInclusive<u16>, secret: Option<&str>) -> Self {
+    pub fn new(
+        port_range: RangeInclusive<u16>,
+        bind_address: IpAddr,
+        secret: Option<&str>,
+    ) -> Self {
         assert!(!port_range.is_empty(), "must provide at least one port");
         Server {
             port_range,
             conns: Arc::new(DashMap::new()),
             auth: secret.map(Authenticator::new),
+            bind_address,
         }
     }
 
     /// Start the server, listening for new connections.
     pub async fn listen(self) -> Result<()> {
         let this = Arc::new(self);
-        let addr = SocketAddr::from(([0, 0, 0, 0], CONTROL_PORT));
+        let addr = SocketAddr::from((this.bind_address, CONTROL_PORT));
         let listener = TcpListener::bind(&addr).await?;
         info!(?addr, "server listening");
 
